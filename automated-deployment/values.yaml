@@ -1,0 +1,17 @@
+cloud:
+  provider: "aws"
+  aws_access_key_id: "ACCESS-KEY"
+  aws_secret_access_key: "SECRET-ACCESS-KEY"
+  aws_profile: "defauşlt" 
+  region: "us-east-2"
+instance:
+  type: "t3.medium"
+  root_volume_size: 100
+  rook_volume_size: 100
+cluster:
+  name: "dev-test"        
+  kubernetes_version: "1.23.9"
+cni:
+  pod_cidr: "10.200.0.0/16"
+  pod_gateway: "10.200.0.1"
+  service_cidr: "10.201.0.0/16"

@@ -1,0 +1,98 @@
+##################################################
+# ELK Logstash ConfigMap
+##################################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-configmap
+  namespace: elk-stack
+data:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    path.config: /usr/share/logstash/pipeline
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+    }
+    filter {
+      grok {
+          match => { "message" => "%{COMBINEDAPACHELOG}" }
+      }
+      date {
+        match => [ "timestamp" , "dd/MMM/yyyy:HH:mm:ss Z" ]
+      }
+      geoip {
+          source => "clientip"
+        }
+      }
+      output {
+        elasticsearch {
+          hosts => ["elasticsearch:9200"]
+      }
+    }
+---
+##################################################
+# ELK Logstash Service
+##################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash-svc
+  namespace: elk-stack
+spec:
+  selector:
+    app: logstash
+  ports:
+  - port: 5044
+    targetPort: 5044
+  type: ClusterIP
+---
+##################################################
+# ELK Logstash Deployment
+##################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash-dep
+  namespace: elk-stack
+spec:
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:7.14.1
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+          ports:
+            - containerPort: 5044
+          volumeMounts:
+          - name: config-volume
+            mountPath: /usr/share/logstash/config
+          - name: logstash-pipeline-volume
+            mountPath: /usr/share/logstash/pipeline
+      volumes:
+      - name: config-volume
+        configMap:
+          name: logstash-configmap
+          items:
+            - key: logstash.yml
+              path: logstash.yml
+      - name: logstash-pipeline-volume
+        configMap:
+          name: logstash-configmap
+          items:
+            - key: logstash.conf
+              path: logstash.conf

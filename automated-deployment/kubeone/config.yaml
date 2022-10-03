@@ -1,0 +1,6 @@
+apiVersion: kubeone.io/v1beta1
+kind: KubeOneCluster
+versions:
+  kubernetes: <kubernetes_version>
+cloudProvider:
+  <provider>: {}

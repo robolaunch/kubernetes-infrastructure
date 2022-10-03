@@ -1,0 +1,50 @@
+##################################################
+# ELK ElasticSearch RBAC ServiceAccount
+##################################################
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: elasticsearch-logging
+  namespace: elk-stack
+  labels:
+    app: elasticsearch-logging
+---
+##################################################
+# ELK ElasticSearch RBAC ClusterRole
+##################################################
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: elasticsearch-logging
+  labels:
+    app: elasticsearch-logging
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - "services"
+  - "namespaces"
+  - "endpoints"
+  verbs:
+  - "get"
+---
+##################################################
+# ELK ElasticSearch RBAC ClusterRoleBinding
+##################################################
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: elk-stack
+  name: elasticsearch-logging
+  labels:
+    app: elasticsearch-logging
+subjects:
+- kind: ServiceAccount
+  name: elasticsearch-logging
+  namespace: elk-stack
+  apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: elasticsearch-logging
+  apiGroup: ""
+---

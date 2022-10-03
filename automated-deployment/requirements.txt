@@ -1,0 +1,6 @@
+kubernetes==24.2.0
+loguru==0.6.0
+pyaml_env==1.1.5
+pycryptodome==3.15.0
+python_terraform==0.10.1
+PyYAML==6.0

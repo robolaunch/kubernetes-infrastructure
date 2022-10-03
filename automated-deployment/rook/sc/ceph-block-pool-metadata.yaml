@@ -1,0 +1,9 @@
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: replicated-metadata-pool
+  namespace: rook-ceph # namespace:cluster
+spec:
+  replicated:
+    size: 2
+

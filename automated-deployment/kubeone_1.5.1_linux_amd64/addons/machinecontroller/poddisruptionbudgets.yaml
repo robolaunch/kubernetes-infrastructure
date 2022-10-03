@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: machine-controller
+  namespace: kube-system
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: machine-controller
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: machine-controller-webhook
+  namespace: kube-system
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: machine-controller-webhook

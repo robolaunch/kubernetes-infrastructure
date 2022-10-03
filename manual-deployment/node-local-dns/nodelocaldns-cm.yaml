@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    kubeone.io/addon: nodelocaldns
+  name: node-local-dns
+  namespace: kube-system
+data:
+  Corefile: |
+    cluster.local:53 {
+      errors
+      cache {
+        success 9984 30
+        denial 9984 5
+      }
+      reload
+      loop
+      bind __PILLAR__LOCAL__DNS__ __PILLAR__DNS__SERVER__
+      forward . __PILLAR__CLUSTER__DNS__ {
+              force_tcp
+      }
+      prometheus :9253
+      health __PILLAR__LOCAL__DNS__:9090
+      }
+    in-addr.arpa:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind __PILLAR__LOCAL__DNS__ __PILLAR__DNS__SERVER__
+        forward . __PILLAR__CLUSTER__DNS__ {
+                force_tcp
+        }
+        prometheus :9253
+        }
+    ip6.arpa:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind __PILLAR__LOCAL__DNS__ __PILLAR__DNS__SERVER__
+        forward . __PILLAR__CLUSTER__DNS__ {
+                force_tcp
+        }
+        prometheus :9253
+        }
+    .:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind __PILLAR__LOCAL__DNS__ __PILLAR__DNS__SERVER__
+        forward . __PILLAR__UPSTREAM__SERVERS__
+        prometheus :9253
+        }
+
+
