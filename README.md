@@ -13,7 +13,7 @@ Apart from above main components,
 - **kubeone -** automating cluster operations
 - **terraform -** creating cloud infrastructure components are used for deploying all components.
 
-Following steps are for deploying **robolaunch Kubernetes Infrastructure** to cloud providers. It can be deployed to both **cloud providers (AWS, Azure, GCP)** and **on-premise**. Currently supported cloud provider is **AWS** and following steps are applicable for deploying robolaunch kubernetes infrastructure to **AWS**. 
+Following steps are for deploying **robolaunch Kubernetes Infrastructure** to cloud providers. It can be deployed to both **cloud providers (AWS, Azure, GCP)** and **on-premise**. Currently supported cloud providers are **AWS** and **Hetzner Cloud** and following steps are applicable for deploying robolaunch kubernetes infrastructure to **AWS** and **Hetzner Cloud**. 
 
 There are two ways to deploy **robolaunch Kubernetes Infrastructure", **Automated Deployment** and **Manual Deployment**. **Manual Deployment** is deploying all componenets step by step. **Automated Deployment** is using **robolaunch-infra-deployer** script.
 
