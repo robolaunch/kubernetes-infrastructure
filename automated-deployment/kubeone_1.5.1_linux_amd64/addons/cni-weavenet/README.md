@@ -1,1 +1,0 @@
-# WeaveNet CNI addon

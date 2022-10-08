@@ -1,12 +1,13 @@
 cloud:
-  provider: "aws"
-  aws_access_key_id: "ACCESS-KEY"
-  aws_secret_access_key: "SECRET-ACCESS-KEY"
-  aws_profile: "defauşlt" 
-  region: "us-east-2"
+  provider: "hetzner" # must be aws or hetzner
+  aws_access_key_id: "ACCESS-KEY" #fill if provider aws
+  aws_secret_access_key: "SECRET-ACCESS-KEY" #fill if provider aws
+  aws_profile: "default" #fill if provider aws
+  region: "us-east-2" #fill if provider aws
+  hcloud_token: "HETZNER-CLOUD-TOKEN" #fill if provider Hetzner Cloud
 instance:
-  type: "t3.medium"
-  root_volume_size: 100
+  type: "cpx31"
+  root_volume_size: 100 #fill if provider aws
   rook_volume_size: 100
 cluster:
   name: "dev-test"        
