@@ -21,6 +21,6 @@ There are two ways to deploy **robolaunch Kubernetes Infrastructure", **Automate
 
 Followings are links for each deployment methods.
 
-- [Automated Deployment](https://github.com/mkcetinkaya/robolaunch-kubernetes/tree/main/automated-deployment)
+- [Automated Deployment](https://github.com/robolaunch/kubernetes-infrastructure/blob/main/automated-deployment/)
 
-- [Manual Deployment](https://github.com/mkcetinkaya/robolaunch-kubernetes/tree/main/manual-deployment)
+- [Manual Deployment](https://github.com/robolaunch/kubernetes-infrastructure/tree/main/manual-deployment)
