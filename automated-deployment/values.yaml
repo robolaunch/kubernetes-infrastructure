@@ -1,18 +1,21 @@
 cloud:
-  provider: "hetzner" # must be aws or hetzner
-  aws_access_key_id: "ACCESS-KEY" #fill if provider aws
-  aws_secret_access_key: "SECRET-ACCESS-KEY" #fill if provider aws
+  provider: "aws" # must be aws or hetzner
+  aws_access_key_id: "AWS-ACCESS-KEY" #fill if provider aws
+  aws_secret_access_key: "AWS-SECRET-ACCESS-KEY" #fill if provider aws
   aws_profile: "default" #fill if provider aws
   region: "us-east-2" #fill if provider aws
   hcloud_token: "HETZNER-CLOUD-TOKEN" #fill if provider Hetzner Cloud
 instance:
-  type: "cpx31"
+  type: "t3.large" #set cloud provider specific values. For example t3.large for aws, cpx31 for Hetzner Cloud
   root_volume_size: 100 #fill if provider aws
   rook_volume_size: 100
 cluster:
   name: "dev-test"        
   kubernetes_version: "1.23.9"
+  control_plane_vm_count: 1
 cni:
   pod_cidr: "10.200.0.0/16"
   pod_gateway: "10.200.0.1"
   service_cidr: "10.201.0.0/16"
+
+

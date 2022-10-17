@@ -90,6 +90,26 @@ resource "hcloud_firewall" "cluster" {
       "0.0.0.0/0",
     ]
   }
+
+  rule {
+    description = "allow NodePorts from any"
+    direction   = "in"
+    protocol    = "udp"
+    port        = "30000-32767"
+    source_ips = [
+      "0.0.0.0/0",
+    ]
+  }
+
+  rule {
+    description = "allow NodePorts from any"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "443"
+    source_ips = [
+      "0.0.0.0/0",
+    ]
+  }
 }
 
 resource "hcloud_network_subnet" "kubeone" {

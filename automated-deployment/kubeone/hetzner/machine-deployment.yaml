@@ -1,0 +1,55 @@
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineDeployment
+metadata:
+  name: hetzner-machinedeployment
+  namespace: kube-system
+spec:
+  paused: false
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 0
+  selector:
+    matchLabels:
+      foo: bar
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      providerSpec:
+        value:
+          sshPublicKeys:
+            - "<ssh-key>"
+          cloudProvider: "hetzner"
+          cloudProviderSpec:
+            # If empty, can be set via HZ_TOKEN env var
+            token:
+              secretKeyRef:
+                namespace: kube-system
+                name: machine-controller-hetzner
+                key: token
+            serverType: "<instance-type>"
+            # Optional
+            datacenter: "<datacenter-id>"
+            #location: "fsn1"
+            image: "ubuntu-20.04"
+            # Optional: placement group prefix
+            #placementGroupPrefix: "<< YOUR_PLACEMENT_GROUP_PREFIX >>"
+            # Optional: network IDs or names
+            networks:
+              - "<network-id>"
+            # Optional: firewall IDs or names
+            firewalls:
+              - "<firewall-id>"
+            # Optional
+            labels:
+              my: label
+          operatingSystem: "ubuntu"
+          operatingSystemSpec:
+            distUpgradeOnBoot: false
+      versions:
+        kubelet: <kubernetes-version>

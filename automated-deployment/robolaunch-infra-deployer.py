@@ -42,14 +42,14 @@ def apply_simple_item_from_yaml(dynamic_client: kubernetes.dynamic.DynamicClient
 start = time.time()
 user_input = BaseConfig(parse_config('values.yaml'))
 
-###set AWS specific environment variables -- START
+###set Cloud specific environment variables -- START
 if user_input.cloud.provider == "aws":
   os.environ["AWS_ACCESS_KEY_ID"] = user_input.cloud.aws_access_key_id
   os.environ["AWS_SECRET_ACCESS_KEY"] = user_input.cloud.aws_secret_access_key
   os.environ["AWS_PROFILE"] = user_input.cloud.aws_profile
 elif user_input.cloud.provider == "hetzner":
   os.environ["HCLOUD_TOKEN"] = user_input.cloud.hcloud_token
-###set AWS specific environment variables -- END
+###set Cloud specific environment variables -- END
 
 ###SSH private key generation -- START
 key = RSA.generate(1024)
@@ -95,35 +95,35 @@ time.sleep(2)
 ###Terraform plan -- START
 if user_input.cloud.provider == "aws":
   tf.plan(capture_output=False, var={'cluster_name':user_input.cluster.name, 'aws_region': user_input.cloud.region, 
-    'control_plane_type': user_input.instance.type, 'control_plane_volume_size': user_input.instance.root_volume_size, 'rook_volume_size': user_input.instance.rook_volume_size});
+    'control_plane_type': user_input.instance.type, 'control_plane_vm_count': user_input.cluster.control_plane_vm_count, 'control_plane_volume_size': user_input.instance.root_volume_size, 'rook_volume_size': user_input.instance.rook_volume_size});
   logger.success("Terraform plan was successfully completed.")
 elif user_input.cloud.provider == "hetzner":
   tf.plan(capture_output=False, var={'cluster_name':user_input.cluster.name,  
-    'control_plane_type': user_input.instance.type,  'rook_volume_size': user_input.instance.rook_volume_size});
+    'control_plane_type': user_input.instance.type,  'control_plane_replicas': user_input.cluster.control_plane_vm_count, 'rook_volume_size': user_input.instance.rook_volume_size});
   logger.success("Terraform plan was successfully completed.")  
 ##Terraform plan -- END
 
 ###Terraform apply -- START
 if user_input.cloud.provider == "aws":
   return_code, stdout, stderr = tf.apply(capture_output=False, skip_plan=True, var={'cluster_name':user_input.cluster.name,
-   'aws_region': user_input.cloud.region,'control_plane_type': user_input.instance.type, 'control_plane_volume_size': user_input.instance.root_volume_size, 
+   'aws_region': user_input.cloud.region,'control_plane_type': user_input.instance.type, 'control_plane_vm_count': user_input.cluster.control_plane_vm_count, 'control_plane_volume_size': user_input.instance.root_volume_size, 
    'rook_volume_size': user_input.instance.rook_volume_size });
   with open(tfpath + '/tf.json', 'w', encoding='utf-8') as f:
       json.dump(stdout, f, ensure_ascii=False, indent=4)
 elif user_input.cloud.provider == "hetzner":
   return_code, stdout, stderr = tf.apply(capture_output=False, skip_plan=True, var={'cluster_name':user_input.cluster.name,
-   'control_plane_type': user_input.instance.type, 'rook_volume_size': user_input.instance.rook_volume_size });
+   'control_plane_type': user_input.instance.type, 'control_plane_replicas': user_input.cluster.control_plane_vm_count, 'rook_volume_size': user_input.instance.rook_volume_size });
   with open(tfpath + '/tf.json', 'w', encoding='utf-8') as f:
       json.dump(stdout, f, ensure_ascii=False, indent=4)
 
 tfstate=tfpath + '/terraform.tfstate'
 if user_input.cloud.provider == "aws":
-  if user_input.cluster.name + "-cp-1" in open(tfstate).read() and user_input.cluster.name + "-cp-2" in open(tfstate).read() and user_input.cluster.name + "-cp-3" in open(tfstate).read():
+  if user_input.cluster.name + "-cp-1" in open(tfstate).read():
     logger.success("Terraform applied successfully and cloud infrastructure is ready for kubernetes deployment")
   else:
     logger.critical("Terraform apply process was failed")
 elif user_input.cloud.provider == "hetzner":
-  if user_input.cluster.name + "-control-plane-1" in open(tfstate).read() and user_input.cluster.name + "-control-plane-2" in open(tfstate).read() and user_input.cluster.name + "-control-plane-3" in open(tfstate).read():
+  if user_input.cluster.name + "-control-plane-1" in open(tfstate).read():
     logger.success("Terraform applied successfully and cloud infrastructure is ready for kubernetes deployment")
   else:
     logger.critical("Terraform apply process was failed")
@@ -187,6 +187,7 @@ if user_input.cloud.provider == "aws":
   ret_trial=apps_v1.delete_namespaced_deployment(namespace="kube-system",name="snapshot-controller")
 elif user_input.cloud.provider == "hetzner":
   ret_trial=apps_v1.delete_namespaced_daemon_set(namespace="kube-system",name="canal")
+  ret_trial=apps_v1.delete_namespaced_daemon_set(namespace="kube-system",name="hcloud-csi-node")
   ret_trial=apps_v1.delete_namespaced_stateful_set(namespace="kube-system",name="hcloud-csi-controller")
   ret_trial=apps_v1.delete_namespaced_deployment(namespace="kube-system",name="calico-kube-controllers")  
 ###Delete unused kubeone addons -- END
@@ -210,15 +211,17 @@ for i in ret_kubeovn.items:
 
 time.sleep(2)
 
-###Untaint master nodes for deploying rook-ceph and other system components -- START
+###Untaint master nodes for deploying rook-ceph and other system components also label master nodes with supercluster label -- START
 config.load_kube_config(kubeconfig)
 v1 = client.CoreV1Api()
 ret = v1.list_node()
 for i in ret.items:
-  cmd="export KUBECONFIG=" + kubeconfig + " && " + "kubectl taint nodes " + i.metadata.name + " node-role.kubernetes.io/master-"
-  os.system(cmd)
+  cmd_taint="export KUBECONFIG=" + kubeconfig + " && " + "kubectl taint nodes " + i.metadata.name + " node-role.kubernetes.io/master-"
+  os.system(cmd_taint)
+  cmd_label="export KUBECONFIG=" + kubeconfig + " && " + "kubectl label node " + i.metadata.name + " super-cluster=" + user_input.cloud.provider + "-" + user_input.cloud.region
+  os.system(cmd_label)
 logger.success("All master nodes are untainted")
-###Untaint master nodes for deploying rook-ceph and other system components -- END
+###Untaint master nodes for deploying rook-ceph and other system components also label master nodes with supercluster label -- END
 
 ###Redeploy node-local-dns in order to prevent port overlapping with Virtual Cluster components -- START
 apply_simple_item_from_yaml(DYNAMIC_CLIENT, "node-local-dns/nodelocaldns-cm.yaml", verbose=True)
@@ -289,11 +292,17 @@ for filename in os.listdir("rook/common/"):
  
 ###Rook-Ceph deployment -- b) Main Ceph components--  
 if user_input.cloud.provider == "aws":
-  cluster_file="rook/aws/cluster.yaml"
+  if user_input.cluster.control_plane_vm_count == 3:
+    cluster_file="rook/aws/cluster-three-nodes.yaml"
+  elif user_input.cluster.control_plane_vm_count == 1:
+    cluster_file="rook/aws/cluster-one-node.yaml"
   with open(cluster_file, 'r') as file :
     filedata = file.read()
 elif user_input.cloud.provider == "hetzner":
-  cluster_file="rook/hetzner/cluster.yaml"
+  if user_input.cluster.control_plane_vm_count == 3:
+    cluster_file="rook/hetzner/cluster-three-nodes.yaml"
+  elif user_input.cluster.control_plane_vm_count == 1:
+    cluster_file="rook/hetzner/cluster-one-node.yaml"
   with open(cluster_file, 'r') as file :
     filedata = file.read()       
          
@@ -328,9 +337,13 @@ while True:
   for i in ret.items:
     if i.status.phase == "Running" and "rook-ceph-osd" in i.metadata.name:
       logger.success("Ceph cluster was deployed successfully")
-      apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/ceph-block-pool-metadata.yaml", verbose=True)
-      apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/ceph-block-pool-data.yaml", verbose=True)
-      apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/storage-class.yaml", verbose=True)
+      if user_input.cluster.control_plane_vm_count == 3:
+        apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/three-nodes/ceph-block-pool-metadata.yaml", verbose=True)
+        apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/three-nodes/ceph-block-pool-data.yaml", verbose=True)
+        apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/three-nodes/storage-class.yaml", verbose=True)
+      elif user_input.cluster.control_plane_vm_count == 1:
+        apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/one-node/ceph-block-pool-data.yaml", verbose=True)
+        apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/sc/one-node/storage-class.yaml", verbose=True)
       flag="true"
       break
     else:
@@ -343,8 +356,73 @@ while True:
 logger.success("Storage class was sucessfully deployed")
 ###Rook-Ceph deployment for -- END  
 
+###Ingress-Nginx deployment -- Start  
+logger.info("Ingress Nginx deployment is in progress and it takes aroud 1 minutes to be completed")
+time.sleep(2)
+helm_ingress_command="export KUBECONFIG=" + kubeconfig + " && " + "helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace -f ingress/values.yaml "
+os.system(helm_ingress_command)
 time.sleep(2) 
+###Ingress-Nginx deployment -- End 
 
+###Machine Deployment File Generation -- Start  
+if user_input.cloud.provider == "aws":
+  f = open ('terraform/aws/terraform.tfstate', "r")
+  data = json.loads(f.read())
+  with open('kubeone/aws/machine-deployment.yaml', 'r') as file :
+    filedata = file.read() 
+  for i in data['resources']:
+      if i['type'] == "aws_key_pair":
+        filedata = filedata.replace("<ssh-key>", i['instances'][0]['attributes']['public_key'])
+      elif i['type'] == "aws_vpc":
+        filedata = filedata.replace("<vpc-id>", i['instances'][0]['attributes']['id'])
+      elif i['type'] == "aws_subnet":
+        filedata = filedata.replace("<subnet-id>", i['instances'][0]['attributes']['id'])
+      elif i['type'] == "aws_instance" and i['name'] == "control_plane":
+        filedata = filedata.replace("<ami-id>", i['instances'][0]['attributes']['ami'])
+      elif i['type'] == "aws_security_group" and i['name'] == "common":
+        security_group_common=i['instances'][0]['attributes']['id']
+      elif i['type'] == "aws_security_group" and i['name'] == "worker-sg":
+        security_group_worker=i['instances'][0]['attributes']['id']   
+# Closing file
+  f.close()
+
+  filedata = filedata.replace("<region>", user_input.cloud.region)
+  filedata = filedata.replace("<availability-zone>", user_input.cloud.region + "a")
+  filedata = filedata.replace("<instance-type>", user_input.instance.type)
+  filedata = filedata.replace("<instance-profile>", user_input.cluster.name + "-host")
+  filedata = filedata.replace("<kubernetes-version>", user_input.cluster.kubernetes_version)
+  filedata = filedata.replace("<kubernetes-cluster-tag>", user_input.cluster.name)
+  filedata = filedata.replace("<security-group-1>", security_group_common)
+  filedata = filedata.replace("<security-group-2>", security_group_worker)
+
+  with open('kubeone/aws/machine-deployment-buffer-without-gpu.yaml', 'w') as file:
+    file.write(filedata)
+  ###Machine Deployment File Generation -- End  
+elif user_input.cloud.provider == "hetzner":
+  f = open ('terraform/hetzner/terraform.tfstate', "r")
+  data = json.loads(f.read())
+  with open('kubeone/hetzner/machine-deployment.yaml', 'r') as file :
+    filedata = file.read() 
+  for i in data['resources']:
+      if i['type'] == "hcloud_ssh_key":
+        filedata = filedata.replace("<ssh-key>", i['instances'][0]['attributes']['public_key'])
+      elif i['type'] == "hcloud_network":
+        filedata = filedata.replace("<network-id>", i['instances'][0]['attributes']['id'])
+      elif i['type'] == "hcloud_firewall":
+        filedata = filedata.replace("<firewall-id>", i['instances'][0]['attributes']['id'])
+      elif i['type'] == "hcloud_server":
+        filedata = filedata.replace("<datacenter-id>", i['instances'][0]['attributes']['datacenter'])
+# Closing file
+  f.close()
+
+  filedata = filedata.replace("<instance-type>", user_input.instance.type)
+  filedata = filedata.replace("<kubernetes-version>", user_input.cluster.kubernetes_version)
+
+  with open('kubeone/hetzner/machine-deployment-buffer-without-gpu.yaml', 'w') as file:
+    file.write(filedata)
+  ###Machine Deployment File Generation -- End  
+
+  
 end = time.time()
 elapsed_time=end-start
-logger.success("Completed all steps in a " + str(int(elapsed_time)) + " seconds.") 
+logger.success("Completed all steps in a " + str(int(elapsed_time)) + " seconds.")  

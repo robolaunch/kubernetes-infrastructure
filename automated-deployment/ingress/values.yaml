@@ -1,0 +1,9 @@
+controller:
+  kind: DaemonSet
+  hostPort:
+    enabled: true
+  nodeSelector: {"node-role.kubernetes.io/worker": "worker"}
+  hostNetwork: true
+defaultBackend:
+  enabled: true
+  nodeSelector: {"node-role.kubernetes.io/worker": "worker"}

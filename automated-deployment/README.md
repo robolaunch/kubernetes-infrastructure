@@ -2,7 +2,7 @@
 
 **robolaunch-infra-deployer** is a python script that can provision all **robolaunch Kubernetes Infrastructure** componenets. Mainly uses **terraform** for cloud provisioning, **kubeone** for kubernetes deployment and also deploys **Kube-OVN (CNI), rook-ceph (CSI)** and **Virtual Cluster (tenancy)**.
 
-Following step for installing prerequisities of **robolaunch-infra-deployer**. These are terraform, python3-pip, unzip, kubeone and kubectl
+Following step for installing prerequisities of **robolaunch-infra-deployer**. These are terraform, python3-pip, unzip, kubeone, helm and kubectl
 
 Pip and dependencies installation
 ```bash
@@ -31,6 +31,13 @@ Kubectl installation
 ```bash
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+Helm installation
+```bash
+wget https://get.helm.sh/helm-v3.8.0-linux-amd64.tar.gz
+tar -zxvf helm*.tar.gz
+cp linux-amd64/helm /usr/local/bin/helm
 ```
 
 All variables that script needs are in the values.yaml. There are **four sections**. **Cloud** section is for cloud secret keys and region information, **Instance** section contains instance type and disk sizes, **Cluster** section for cluster name and version and finally **CNI** section for pod and service subnet details.

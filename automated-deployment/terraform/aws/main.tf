@@ -154,6 +154,65 @@ resource "aws_security_group_rule" "nodeports" {
   cidr_blocks = ["0.0.0.0/0"]
 }
 
+##########################worker rules start
+
+resource "aws_security_group" "worker-sg" {
+  name        = "${var.cluster_name}-worker-sg"
+  description = "cluster worker rules"
+  vpc_id      = data.aws_vpc.selected.id
+
+  tags = tomap({
+    "Cluster"                = var.cluster_name,
+    (local.kube_cluster_tag) = "shared",
+  })
+}
+
+resource "aws_security_group_rule" "ingress_self_allow_all_worker" {
+  type              = "ingress"
+  security_group_id = aws_security_group.worker-sg.id
+
+  description = "allow all incoming traffic from members of this group"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  self        = true
+}
+
+resource "aws_security_group_rule" "egress_allow_all_worker" {
+  type              = "egress"
+  security_group_id = aws_security_group.worker-sg.id
+
+  description = "allow all outgoing traffic"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "nodeports_worker_udp" {
+  type              = "ingress"
+  security_group_id = aws_security_group.worker-sg.id
+
+  description = "open nodeports udp"
+  from_port   = 30000
+  to_port     = 32767
+  protocol    = "udp"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "ingress-controller" {
+  type              = "ingress"
+  security_group_id = aws_security_group.worker-sg.id
+
+  description = "ingress controller"
+  from_port   = 443
+  to_port     = 443
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+#######################worker rules end
+
+
 resource "aws_security_group" "elb" {
   name        = "${var.cluster_name}-api-lb"
   description = "kube-api firewall"
