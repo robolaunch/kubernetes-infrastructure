@@ -6,7 +6,7 @@ cloud:
   region: "us-east-2" #fill if provider aws
   hcloud_token: "HETZNER-CLOUD-TOKEN" #fill if provider Hetzner Cloud
 instance:
-  type: "t3.large" #set cloud provider specific values. For example t3.large for aws, cpx31 for Hetzner Cloud
+  type: "t3a.xlarge" #set cloud provider specific values. For example t3.large for aws, cpx31 for Hetzner Cloud
   root_volume_size: 100 #fill if provider aws
   rook_volume_size: 100
 cluster:

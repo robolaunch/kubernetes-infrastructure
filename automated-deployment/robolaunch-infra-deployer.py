@@ -154,7 +154,7 @@ if tfjson.is_file():
       os.environ[varname] = varvalue
   logger.info("Kubernetes deployment is in progress and it takes aroud 6-9 minutes to be completed")
   time.sleep(2)
-  kubeone_command="ssh-agent && ssh-add /root/.ssh/id_rsa && sleep 3 && kubeone install --manifest kubeone/config-edited.yaml --tfjson " + tfpath
+  kubeone_command="ssh-agent && ssh-add /root/.ssh/id_rsa && sleep 3 && kubeone apply --manifest kubeone/config-edited.yaml --auto-approve --tfjson " + tfpath
   os.system(kubeone_command)
 ###Kubernetes deployment with kubeone -- END  
 
@@ -421,6 +421,12 @@ elif user_input.cloud.provider == "hetzner":
   with open('kubeone/hetzner/machine-deployment-buffer-without-gpu.yaml', 'w') as file:
     file.write(filedata)
   ###Machine Deployment File Generation -- End  
+
+###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- START
+if user_input.cloud.provider == "hetzner":
+  apply_simple_item_from_yaml(DYNAMIC_CLIENT, "kubeone/hetzner/custom_addons/osp-ubuntu-internal.yaml", verbose=True)
+  logger.success("Deployed internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner")
+###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- START
 
   
 end = time.time()

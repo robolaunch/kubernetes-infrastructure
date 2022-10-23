@@ -1,6 +1,10 @@
-apiVersion: kubeone.io/v1beta1
+apiVersion: kubeone.k8c.io/v1beta2
 kind: KubeOneCluster
 versions:
   kubernetes: <kubernetes_version>
 cloudProvider:
   <provider>: {}
+operatingSystemManager:
+  deploy: true
+
+
