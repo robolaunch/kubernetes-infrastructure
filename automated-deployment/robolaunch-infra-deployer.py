@@ -439,11 +439,51 @@ elif user_input.cloud.provider == "hetzner":
     file.write(filedata)
   ###Machine Deployment File Generation -- End
 
+###Machine Deployment File Generation for GPU instances-- Start
+if user_input.cloud.provider == "aws":
+  f = open ('terraform/aws/terraform.tfstate', "r")
+  data = json.loads(f.read())
+  with open('kubeone/aws/machine-deployment.yaml', 'r') as file :
+    filedata_gpu = file.read()
+  for i in data['resources']:
+      if i['type'] == "aws_key_pair":
+        filedata_gpu = filedata_gpu.replace("<ssh-key>", i['instances'][0]['attributes']['public_key'])
+      elif i['type'] == "aws_vpc":
+        filedata_gpu = filedata_gpu.replace("<vpc-id>", i['instances'][0]['attributes']['id'])
+      elif i['type'] == "aws_subnet":
+        filedata_gpu = filedata_gpu.replace("<subnet-id>", i['instances'][0]['attributes']['id'])
+      elif i['type'] == "aws_security_group" and i['name'] == "common":
+        security_group_common=i['instances'][0]['attributes']['id']
+      elif i['type'] == "aws_security_group" and i['name'] == "worker-sg":
+        security_group_worker=i['instances'][0]['attributes']['id']
+# Closing file
+  f.close()
+
+  filedata_gpu = filedata_gpu.replace("<region>", user_input.cloud.region)
+  filedata_gpu = filedata_gpu.replace("<availability-zone>", user_input.cloud.region + "a")
+  filedata_gpu = filedata_gpu.replace("<instance-type>", user_input.instance.type)
+  filedata_gpu = filedata_gpu.replace("<instance-profile>", user_input.cluster.name + "-host")
+  filedata_gpu = filedata_gpu.replace("<kubernetes-version>", user_input.cluster.kubernetes_version)
+  filedata_gpu = filedata_gpu.replace("<kubernetes-cluster-tag>", user_input.cluster.name)
+  filedata_gpu = filedata_gpu.replace("<security-group-1>", security_group_common)
+  filedata_gpu = filedata_gpu.replace("<security-group-2>", security_group_worker)
+  filedata_gpu = filedata_gpu.replace("<ami-id>", user_input.gpu_worker.ami_id)
+
+  with open('kubeone/aws/machine-deployment-buffer-gpu.yaml', 'w') as file:
+    file.write(filedata_gpu)
+  ###Machine Deployment File Generation for GPU instances-- End
+
 ###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- START
 if user_input.cloud.provider == "hetzner":
   apply_simple_item_from_yaml(DYNAMIC_CLIENT, "kubeone/hetzner/custom_addons/osp-ubuntu-internal.yaml", verbose=True)
   logger.success("Deployed internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner")
 ###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- START
+
+###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome gpu node issue in AWS -- START
+if user_input.cloud.provider == "aws":
+  apply_simple_item_from_yaml(DYNAMIC_CLIENT, "kubeone/aws/custom_addons/osp-ubuntu-aws-gpu.yaml", verbose=True)
+  logger.success("Deployed internal OperatingSystemProvider for Ubuntu in order to overcome gpu node issue in AWS")
+###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- STOP
 
 
 end = time.time()
