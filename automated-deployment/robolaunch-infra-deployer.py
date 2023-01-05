@@ -16,7 +16,7 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stdout, format="[{time:HH:mm:ss}] <lvl>{message}</lvl>", level="INFO")
 
-###Functions for creating kubernetes object from yaml -- START 
+###Functions for creating kubernetes object from yaml -- START
 def apply_simple_item(dynamic_client: kubernetes.dynamic.DynamicClient, manifest: dict, verbose: bool=False):
     api_version = manifest.get("apiVersion")
     kind = manifest.get("kind")
@@ -32,7 +32,7 @@ def apply_simple_item(dynamic_client: kubernetes.dynamic.DynamicClient, manifest
         crd_api.create(body=manifest, namespace=namespace)
         if verbose:
             print(f"{namespace}/{resource_name} created")
-        
+
 def apply_simple_item_from_yaml(dynamic_client: kubernetes.dynamic.DynamicClient, filepath: pathlib.Path, verbose: bool=False):
     with open(filepath, 'r') as f:
         manifest = yaml.safe_load(f)
@@ -41,6 +41,8 @@ def apply_simple_item_from_yaml(dynamic_client: kubernetes.dynamic.DynamicClient
 
 start = time.time()
 user_input = BaseConfig(parse_config('values.yaml'))
+
+cwd = os.getcwd()
 
 ###set Cloud specific environment variables -- START
 if user_input.cloud.provider == "aws":
@@ -66,11 +68,18 @@ f.close()
 ###SSH public key generation -- END
 
 ###Put key files to default location -- START
-os.rename("private.pem", "/root/.ssh/id_rsa")
-os.chmod("/root/.ssh/id_rsa", stat.S_IREAD)
-os.rename("public.pub", "/root/.ssh/id_rsa.pub")
-private_key = Path("/root/.ssh/id_rsa")
-public_key = Path("/root/.ssh/id_rsa.pub")
+if user_input.cloud.provider == "aws":
+  os.rename("private.pem", "terraform/aws/ssh-keys/id_rsa")
+  os.chmod("terraform/aws/ssh-keys/id_rsa", stat.S_IREAD)
+  os.rename("public.pub", "terraform/aws/ssh-keys/id_rsa.pub")
+  private_key = Path("terraform/aws/ssh-keys/id_rsa")
+  public_key = Path("terraform/aws/ssh-keys/id_rsa.pub")
+elif user_input.cloud.provider == "hetzner":
+  os.rename("private.pem", "terraform/hetzner/ssh-keys/id_rsa")
+  os.chmod("terraform/hetzner/ssh-keys/id_rsa", stat.S_IREAD)
+  os.rename("public.pub", "terraform/hetzner/ssh-keys/id_rsa.pub")
+  private_key = Path("terraform/hetzner/ssh-keys/id_rsa")
+  public_key = Path("terraform/hetzner/ssh-keys/id_rsa.pub")
 if private_key.is_file() and public_key.is_file() :
   logger.success("SSH keys are generated and saved successfully")
 else:
@@ -94,24 +103,24 @@ time.sleep(2)
 
 ###Terraform plan -- START
 if user_input.cloud.provider == "aws":
-  tf.plan(capture_output=False, var={'cluster_name':user_input.cluster.name, 'aws_region': user_input.cloud.region, 
+  tf.plan(capture_output=False, var={'cluster_name':user_input.cluster.name, 'aws_region': user_input.cloud.region, 'ssh_public_key_file':  cwd + "/terraform/aws/ssh-keys/id_rsa.pub", 'ssh_private_key_file':  cwd + "/terraform/aws/ssh-keys/id_rsa",
     'control_plane_type': user_input.instance.type, 'control_plane_vm_count': user_input.cluster.control_plane_vm_count, 'control_plane_volume_size': user_input.instance.root_volume_size, 'rook_volume_size': user_input.instance.rook_volume_size});
   logger.success("Terraform plan was successfully completed.")
 elif user_input.cloud.provider == "hetzner":
-  tf.plan(capture_output=False, var={'cluster_name':user_input.cluster.name,  
+  tf.plan(capture_output=False, var={'cluster_name':user_input.cluster.name,  'ssh_public_key_file': cwd + "/terraform/hetzner/ssh-keys/id_rsa.pub",
     'control_plane_type': user_input.instance.type,  'control_plane_replicas': user_input.cluster.control_plane_vm_count, 'rook_volume_size': user_input.instance.rook_volume_size});
-  logger.success("Terraform plan was successfully completed.")  
+  logger.success("Terraform plan was successfully completed.")
 ##Terraform plan -- END
 
 ###Terraform apply -- START
 if user_input.cloud.provider == "aws":
-  return_code, stdout, stderr = tf.apply(capture_output=False, skip_plan=True, var={'cluster_name':user_input.cluster.name,
-   'aws_region': user_input.cloud.region,'control_plane_type': user_input.instance.type, 'control_plane_vm_count': user_input.cluster.control_plane_vm_count, 'control_plane_volume_size': user_input.instance.root_volume_size, 
+  return_code, stdout, stderr = tf.apply(capture_output=False, skip_plan=True, var={'cluster_name':user_input.cluster.name, 'ssh_public_key_file':  cwd + "/terraform/aws/ssh-keys/id_rsa.pub", 'ssh_private_key_file':  cwd + "/terraform/aws/ssh-keys/id_rsa",
+   'aws_region': user_input.cloud.region,'control_plane_type': user_input.instance.type, 'control_plane_vm_count': user_input.cluster.control_plane_vm_count, 'control_plane_volume_size': user_input.instance.root_volume_size,
    'rook_volume_size': user_input.instance.rook_volume_size });
   with open(tfpath + '/tf.json', 'w', encoding='utf-8') as f:
       json.dump(stdout, f, ensure_ascii=False, indent=4)
 elif user_input.cloud.provider == "hetzner":
-  return_code, stdout, stderr = tf.apply(capture_output=False, skip_plan=True, var={'cluster_name':user_input.cluster.name,
+  return_code, stdout, stderr = tf.apply(capture_output=False, skip_plan=True, var={'cluster_name':user_input.cluster.name, 'ssh_public_key_file': cwd + "/terraform/hetzner/ssh-keys/id_rsa.pub",
    'control_plane_type': user_input.instance.type, 'control_plane_replicas': user_input.cluster.control_plane_vm_count, 'rook_volume_size': user_input.instance.rook_volume_size });
   with open(tfpath + '/tf.json', 'w', encoding='utf-8') as f:
       json.dump(stdout, f, ensure_ascii=False, indent=4)
@@ -129,7 +138,7 @@ elif user_input.cloud.provider == "hetzner":
     logger.critical("Terraform apply process was failed")
 ###Terraform apply -- END
 
-time.sleep(2) 
+time.sleep(2)
 
 ###Kubernetes deployment with kubeone -- START
 ##ssh-add do not run successfully as others linux command. So below code block set relevant env variable before ssh-add command.
@@ -154,9 +163,9 @@ if tfjson.is_file():
       os.environ[varname] = varvalue
   logger.info("Kubernetes deployment is in progress and it takes aroud 6-9 minutes to be completed")
   time.sleep(2)
-  kubeone_command="ssh-agent && ssh-add /root/.ssh/id_rsa && sleep 3 && kubeone apply --manifest kubeone/config-edited.yaml --auto-approve --tfjson " + tfpath
+  kubeone_command="ssh-agent && ssh-add " + cwd + "/terraform/" + user_input.cloud.provider +"/ssh-keys/id_rsa" + "  && sleep 3 && kubeone apply --manifest kubeone/config-edited.yaml --auto-approve --tfjson " + tfpath
   os.system(kubeone_command)
-###Kubernetes deployment with kubeone -- END  
+###Kubernetes deployment with kubeone -- END
 
 ###Kubernetes Clients initializations -- START
 kubeconfig=user_input.cluster.name + "-kubeconfig"
@@ -189,7 +198,7 @@ elif user_input.cloud.provider == "hetzner":
   ret_trial=apps_v1.delete_namespaced_daemon_set(namespace="kube-system",name="canal")
   ret_trial=apps_v1.delete_namespaced_daemon_set(namespace="kube-system",name="hcloud-csi-node")
   ret_trial=apps_v1.delete_namespaced_stateful_set(namespace="kube-system",name="hcloud-csi-controller")
-  ret_trial=apps_v1.delete_namespaced_deployment(namespace="kube-system",name="calico-kube-controllers")  
+  ret_trial=apps_v1.delete_namespaced_deployment(namespace="kube-system",name="calico-kube-controllers")
 ###Delete unused kubeone addons -- END
 
 ###Kube-ovn CNI Installation -- START
@@ -207,7 +216,7 @@ for i in ret_kubeovn.items:
   if "kube-ovn-controller" in i.metadata.name and i.status.phase == "Running":
     logger.success("Kube-ovn CNI installation completed")
     break
-###Kube-ovn CNI Installation -- END 
+###Kube-ovn CNI Installation -- END
 
 time.sleep(2)
 
@@ -227,7 +236,7 @@ logger.success("All master nodes are untainted")
 apply_simple_item_from_yaml(DYNAMIC_CLIENT, "node-local-dns/nodelocaldns-cm.yaml", verbose=True)
 apply_simple_item_from_yaml(DYNAMIC_CLIENT, "node-local-dns/nodelocaldns-daemonset.yaml", verbose=True)
 logger.success("Node local dns is patched in order to prevent port overlapping with Virtual Cluster")
-###Redeploy node-local-dns in order to prevent port overlapping with Virtual Cluster components -- END 
+###Redeploy node-local-dns in order to prevent port overlapping with Virtual Cluster components -- END
 
 ###Deploy Virtualcluster componenents --- START
 apply_simple_item_from_yaml(DYNAMIC_CLIENT, "vc/tenancy.x-k8s.io_virtualclusters.yaml", verbose=True)
@@ -288,9 +297,9 @@ for filename in os.listdir("rook/common/"):
               apply_simple_item_from_yaml(DYNAMIC_CLIENT, file, verbose=True)
               os.remove(file)
               i+=1
-              buff = [] #buffer reset 
- 
-###Rook-Ceph deployment -- b) Main Ceph components--  
+              buff = [] #buffer reset
+
+###Rook-Ceph deployment -- b) Main Ceph components--
 if user_input.cloud.provider == "aws":
   if user_input.cluster.control_plane_vm_count == 3:
     cluster_file="rook/aws/cluster-three-nodes.yaml"
@@ -304,8 +313,8 @@ elif user_input.cloud.provider == "hetzner":
   elif user_input.cluster.control_plane_vm_count == 1:
     cluster_file="rook/hetzner/cluster-one-node.yaml"
   with open(cluster_file, 'r') as file :
-    filedata = file.read()       
-         
+    filedata = file.read()
+
 flag= False
 while True:
   ret = v1.list_namespaced_pod("rook-ceph")
@@ -328,7 +337,7 @@ with open('rook/cluster-edited.yaml', 'w') as file:
 
 
 logger.info("Ceph cluster deployment is in progress and it takes aroud 5 minutes to be completed")
-apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/cluster-edited.yaml", verbose=True) 
+apply_simple_item_from_yaml(DYNAMIC_CLIENT, "rook/cluster-edited.yaml", verbose=True)
 
 ###Rook-Ceph deployment -- c) StorageClass Deployment--
 flag="false"
@@ -354,22 +363,22 @@ while True:
     continue
 
 logger.success("Storage class was sucessfully deployed")
-###Rook-Ceph deployment for -- END  
+###Rook-Ceph deployment for -- END
 
-###Ingress-Nginx deployment -- Start  
+###Ingress-Nginx deployment -- Start
 logger.info("Ingress Nginx deployment is in progress and it takes aroud 1 minutes to be completed")
 time.sleep(2)
 helm_ingress_command="export KUBECONFIG=" + kubeconfig + " && " + "helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace -f ingress/values.yaml "
 os.system(helm_ingress_command)
-time.sleep(2) 
-###Ingress-Nginx deployment -- End 
+time.sleep(2)
+###Ingress-Nginx deployment -- End
 
-###Machine Deployment File Generation -- Start  
+###Machine Deployment File Generation -- Start
 if user_input.cloud.provider == "aws":
   f = open ('terraform/aws/terraform.tfstate', "r")
   data = json.loads(f.read())
   with open('kubeone/aws/machine-deployment.yaml', 'r') as file :
-    filedata = file.read() 
+    filedata = file.read()
   for i in data['resources']:
       if i['type'] == "aws_key_pair":
         filedata = filedata.replace("<ssh-key>", i['instances'][0]['attributes']['public_key'])
@@ -382,7 +391,7 @@ if user_input.cloud.provider == "aws":
       elif i['type'] == "aws_security_group" and i['name'] == "common":
         security_group_common=i['instances'][0]['attributes']['id']
       elif i['type'] == "aws_security_group" and i['name'] == "worker-sg":
-        security_group_worker=i['instances'][0]['attributes']['id']   
+        security_group_worker=i['instances'][0]['attributes']['id']
 # Closing file
   f.close()
 
@@ -397,12 +406,12 @@ if user_input.cloud.provider == "aws":
 
   with open('kubeone/aws/machine-deployment-buffer-without-gpu.yaml', 'w') as file:
     file.write(filedata)
-  ###Machine Deployment File Generation -- End  
+  ###Machine Deployment File Generation -- End
 elif user_input.cloud.provider == "hetzner":
   f = open ('terraform/hetzner/terraform.tfstate', "r")
   data = json.loads(f.read())
   with open('kubeone/hetzner/machine-deployment.yaml', 'r') as file :
-    filedata = file.read() 
+    filedata = file.read()
   for i in data['resources']:
       if i['type'] == "hcloud_ssh_key":
         filedata = filedata.replace("<ssh-key>", i['instances'][0]['attributes']['public_key'])
@@ -420,7 +429,7 @@ elif user_input.cloud.provider == "hetzner":
 
   with open('kubeone/hetzner/machine-deployment-buffer-without-gpu.yaml', 'w') as file:
     file.write(filedata)
-  ###Machine Deployment File Generation -- End  
+  ###Machine Deployment File Generation -- End
 
 ###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- START
 if user_input.cloud.provider == "hetzner":
@@ -428,7 +437,7 @@ if user_input.cloud.provider == "hetzner":
   logger.success("Deployed internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner")
 ###Deploy internal OperatingSystemProvider for Ubuntu in order to overcome node issue in hetzner -- START
 
-  
+
 end = time.time()
 elapsed_time=end-start
 logger.success("Completed all steps in a " + str(int(elapsed_time)) + " seconds.")  
