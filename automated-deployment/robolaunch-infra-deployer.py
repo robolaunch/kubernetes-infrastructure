@@ -373,6 +373,14 @@ os.system(helm_ingress_command)
 time.sleep(2)
 ###Ingress-Nginx deployment -- End
 
+###Internal Ingress-Nginx deployment -- Start
+logger.info("Internal Ingress Nginx deployment is in progress and it takes aroud 1 minutes to be completed")
+time.sleep(2)
+helm_internal_ingress_command="export KUBECONFIG=" + kubeconfig + " && " + "helm upgrade --install internal-ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace internal-ingress-nginx --create-namespace -f internal-ingress/values.yaml "
+os.system(helm_internal_ingress_command)
+time.sleep(2)
+###Internal Ingress-Nginx deployment -- End
+
 ###Machine Deployment File Generation -- Start
 if user_input.cloud.provider == "aws":
   f = open ('terraform/aws/terraform.tfstate', "r")

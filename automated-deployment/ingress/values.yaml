@@ -4,6 +4,10 @@ controller:
     enabled: true
   nodeSelector: {"node-role.kubernetes.io/worker": "worker"}
   hostNetwork: true
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: true
 defaultBackend:
   enabled: true
   nodeSelector: {"node-role.kubernetes.io/worker": "worker"}

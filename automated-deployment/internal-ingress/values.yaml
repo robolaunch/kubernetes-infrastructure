@@ -1,0 +1,18 @@
+controller:
+  kind: DaemonSet
+  nodeSelector: {"kube-ovn/role": "master"}
+  service:
+    type: NodePort
+    nodePorts:
+      http: 32080
+      https: 32443
+  ingressClassResource:
+    # -- Name of the ingressClass
+    name: internal-ingress-nginx
+    # -- Is this ingressClass enabled or not
+    enabled: true
+    # -- Is this the default ingressClass for the cluster
+    default: false
+defaultBackend:
+  enabled: true
+  nodeSelector: {"kube-ovn/role": "master"}
