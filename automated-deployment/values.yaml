@@ -9,6 +9,8 @@ instance:
   type: "t3a.xlarge" #set cloud provider specific values. For example t3.large for aws, cpx31 for Hetzner Cloud
   root_volume_size: 100 #fill if provider aws
   rook_volume_size: 100
+gpu_worker:
+  ami_id: "ami-0612fe06dd0a45323" #fill if provider is aws and if instance is gpu type 
 cluster:
   name: "dev-test"        
   kubernetes_version: "1.23.9"
