@@ -201,3 +201,21 @@ resource "hcloud_load_balancer_service" "load_balancer_service" {
   listen_port      = 6443
   destination_port = 6443
 }
+
+resource "hcloud_load_balancer_service" "load_balancer_service_dashboard" {
+  count = local.loadbalancer_count
+
+  load_balancer_id = hcloud_load_balancer.load_balancer.0.id
+  protocol         = "tcp"
+  listen_port      = 30001
+  destination_port = 30001
+}
+
+resource "hcloud_load_balancer_service" "load_balancer_service_internal_ingress" {
+  count = local.loadbalancer_count
+
+  load_balancer_id = hcloud_load_balancer.load_balancer.0.id
+  protocol         = "tcp"
+  listen_port      = 443
+  destination_port = 32443
+}

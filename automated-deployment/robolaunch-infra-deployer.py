@@ -381,6 +381,27 @@ os.system(helm_internal_ingress_command)
 time.sleep(2)
 ###Internal Ingress-Nginx deployment -- End
 
+###Kubernetes dashboard Deployment -- Start
+for filename in os.listdir("dashboard/"):
+    with open("dashboard/" + filename, "r") as f:
+        buff = []
+        i = 1
+        for line in f:
+            if line.startswith('#'):
+                continue  # skip comments
+            if line.strip() and line.strip() != "---":  #skips the empty lines
+              buff.append(line)
+            if line.strip() == "---":
+              file="dashboard/" + filename.replace('.yaml','') + "_" + str(i) + ".yaml"
+              output = open(file ,'w')
+              output.write(''.join(buff))
+              output.close()
+              apply_simple_item_from_yaml(DYNAMIC_CLIENT, file, verbose=True)
+              os.remove(file)
+              i+=1
+              buff = [] #buffer reset
+###Kubernetes dashboard Deployment -- End
+
 ###Machine Deployment File Generation -- Start
 if user_input.cloud.provider == "aws":
   f = open ('terraform/aws/terraform.tfstate', "r")
