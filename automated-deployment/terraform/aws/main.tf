@@ -234,6 +234,22 @@ resource "aws_security_group" "elb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "allow anyone to connect to tcp/30001"
+    from_port   = 30001
+    to_port     = 30001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "allow anyone to connect to tcp/443"
+    from_port   = 443
+    to_port     = 32443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = tomap({
     "Cluster" = var.cluster_name,
   })
@@ -276,6 +292,20 @@ resource "aws_elb" "control_plane" {
     lb_protocol       = "tcp"
   }
 
+  listener {
+    instance_port     = 30001
+    instance_protocol = "tcp"
+    lb_port           = 30001
+    lb_protocol       = "tcp"
+  }
+
+  listener {
+    instance_port     = 443
+    instance_protocol = "tcp"
+    lb_port           = 32443
+    lb_protocol       = "tcp"
+  }
+
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -289,6 +319,7 @@ resource "aws_elb" "control_plane" {
     (local.kube_cluster_tag) = "shared",
   })
 }
+
 
 #################################### SSH KEY ###################################
 resource "aws_key_pair" "deployer" {
