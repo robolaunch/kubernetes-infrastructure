@@ -245,7 +245,7 @@ resource "aws_security_group" "elb" {
   ingress {
     description = "allow anyone to connect to tcp/443"
     from_port   = 443
-    to_port     = 32443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -300,9 +300,9 @@ resource "aws_elb" "control_plane" {
   }
 
   listener {
-    instance_port     = 443
+    instance_port     = 32443
     instance_protocol = "tcp"
-    lb_port           = 32443
+    lb_port           = 443
     lb_protocol       = "tcp"
   }
 
