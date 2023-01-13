@@ -402,6 +402,12 @@ for filename in os.listdir("dashboard/"):
               buff = [] #buffer reset
 ###Kubernetes dashboard Deployment -- End
 
+###Nvidia device plugin daemonset deployment in AWS -- START
+if user_input.cloud.provider == "aws":
+  apply_simple_item_from_yaml(DYNAMIC_CLIENT, "nvidia/nvidia-device-plugin-ds.yaml", verbose=True)
+  logger.success("Deployed nvidia device plugin daemonset")
+###Nvidia device plugin daemonset deployment in AWS -- STOP
+
 ###Machine Deployment File Generation -- Start
 if user_input.cloud.provider == "aws":
   f = open ('terraform/aws/terraform.tfstate', "r")
@@ -464,7 +470,7 @@ elif user_input.cloud.provider == "hetzner":
 if user_input.cloud.provider == "aws":
   f = open ('terraform/aws/terraform.tfstate', "r")
   data = json.loads(f.read())
-  with open('kubeone/aws/machine-deployment.yaml', 'r') as file :
+  with open('kubeone/aws/machine-deployment-gpu.yaml', 'r') as file :
     filedata_gpu = file.read()
   for i in data['resources']:
       if i['type'] == "aws_key_pair":
@@ -482,7 +488,7 @@ if user_input.cloud.provider == "aws":
 
   filedata_gpu = filedata_gpu.replace("<region>", user_input.cloud.region)
   filedata_gpu = filedata_gpu.replace("<availability-zone>", user_input.cloud.region + "a")
-  filedata_gpu = filedata_gpu.replace("<instance-type>", user_input.instance.type)
+  filedata_gpu = filedata_gpu.replace("<instance-type>", user_input.gpu_worker.type)
   filedata_gpu = filedata_gpu.replace("<instance-profile>", user_input.cluster.name + "-host")
   filedata_gpu = filedata_gpu.replace("<kubernetes-version>", user_input.cluster.kubernetes_version)
   filedata_gpu = filedata_gpu.replace("<kubernetes-cluster-tag>", user_input.cluster.name)

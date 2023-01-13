@@ -10,6 +10,7 @@ instance:
   root_volume_size: 100 #fill if provider aws
   rook_volume_size: 100
 gpu_worker:
+  type: "g4dn.xlarge" #fill if provider is aws and if instance is gpu type
   ami_id: "ami-0612fe06dd0a45323" #fill if provider is aws and if instance is gpu type 
 cluster:
   name: "dev-test"        
