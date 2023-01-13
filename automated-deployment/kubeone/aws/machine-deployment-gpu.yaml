@@ -1,0 +1,76 @@
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineDeployment
+metadata:
+  name: aws-machinedeployment-buffer-gpu-1
+  namespace: kube-system
+  annotations:
+    k8c.io/operating-system-profile: osp-ubuntu-aws-gpu
+spec:
+  paused: false
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 0
+  selector:
+    matchLabels:
+      foo: bar
+  template:
+    metadata:
+      labels:
+        foo: bar
+    spec:
+      providerSpec:
+        value:
+          sshPublicKeys:
+            - "<ssh-key>"
+          cloudProvider: "aws"
+          cloudProviderSpec:
+            # If empty, can be set via AWS_ACCESS_KEY_ID env var
+            accessKeyId:
+              secretKeyRef:
+                namespace: kube-system
+                name: kubeone-machine-controller-credentials
+                key: accessKeyId
+            # If empty, can be set via AWS_SECRET_ACCESS_KEY env var
+            secretAccessKey:
+              secretKeyRef:
+                namespace: kube-system
+                name: kubeone-machine-controller-credentials
+                key: secretAccessKey
+            region: "<region>"
+            availabilityZone: "<availability-zone>"
+            vpcId: "<vpc-id>"
+            subnetId: "<subnet-id>"
+            securityGroupIDs:
+            - "<security-group-1>"
+            - "<security-group-2>"
+            instanceType: "<instance-type>"
+            instanceProfile: "<instance-profile>"
+            isSpotInstance: false
+            diskSize: 100
+            diskType: "gp2"
+            ebsVolumeEncrypted: false
+            ami: "<ami-id>"
+            ## Only application if diskType = io1
+            diskIops: 500
+            # Assign a public IP to this instance. Default: true
+            assignPublicIP: true
+            tags:
+              "KubernetesCluster": "<kubernetes-cluster-tag>"
+          # Can be 'ubuntu', 'centos', `rhel` or 'sles'
+          operatingSystem: "ubuntu"
+          operatingSystemSpec:
+            disableAutoUpdate: true
+            distUpgradeOnBoot: false
+            # 'rhelSubscriptionManagerUser' is only used for rhel os and can be set via env var `RHEL_SUBSCRIPTION_MANAGER_USER`
+            rhelSubscriptionManagerUser: "<< RHEL_SUBSCRIPTION_MANAGER_USER >>"
+            # 'rhelSubscriptionManagerPassword' is only used for rhel os and can be set via env var `RHEL_SUBSCRIPTION_MANAGER_PASSWORD`
+            rhelSubscriptionManagerPassword: "<< RHEL_SUBSCRIPTION_MANAGER_PASSWORD >>"
+            # 'rhsmOfflineToken' if it was provided red hat systems subscriptions will be removed upon machines deletions, and if wasn't
+            # provided the rhsm will be disabled and any created subscription won't be removed automatically
+            #rhsmOfflineToken: "<< REDHAT_SUBSCRIPTIONS_OFFLINE_TOKEN >>"
+      versions:
+        kubelet: <kubernetes-version>
