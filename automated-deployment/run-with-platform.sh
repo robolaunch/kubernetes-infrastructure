@@ -299,8 +299,8 @@ roleRef:
   kind: ClusterRole
   name: $ORGANIZATION-admin-role
 subjects:
-- kind: Group
-  name: $GROUP
+- kind: User
+  name: $OIDC_URL#$CLOUD_INSTANCE_USER
   apiGroup: rbac.authorization.k8s.io" > crb.yaml
 	kubectl create -f crb.yaml
 	rm -rf crb.yaml
